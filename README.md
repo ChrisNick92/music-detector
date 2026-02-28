@@ -1,10 +1,18 @@
 # Music Detector
 
-> **Train a production-ready music detection model in just a few commands.**
+>## **Create an efficient and lightweight Music Detector with a few commands 🚀**
 
-Ever wanted to build a deep neural network that can tell whether audio contains music — without writing hundreds of lines of training boilerplate? With [DeepAudioX](https://github.com/deepaudiox/deepaudiox) and pretrained audio backbones, you can go from raw audio to a working classifier in minutes, not days.
+### See it in action 🎬
 
-This project trains a binary **Music** vs **Non-Music** classifier on [AudioSet](https://research.google.com/audioset/) and includes everything you need: dataset preparation, configurable training, and real-time microphone inference out of the box.
+<video src="misc/music-detector-demo.mp4" controls width="100%"></video>
+
+<sub>Real-time music detection running from the microphone — predictions update every second with confidence scores.</sub>
+
+This is a repository to showcase the capabilities of [DeepAudioX](https://github.com/deepaudiox/deepaudiox). A lightweight Pytorch-based library that me and my team in [MagCIL](https://labs-repos.iit.demokritos.gr/MagCIL/) have developed. DeepAudioX provides simple APIs for training / evaluating / and inference audio models using pretrained models as feature extractors!
+
+In this project we train a binary classifier that detects **Music** vs **Non-Music** excerpts. We use a small sample of the [AudioSet](https://research.google.com/audioset/) dataset that you can download from Kaggle (see the instructions below).
+
+Let's get started 🚀
 
 ## Project Structure
 
@@ -20,6 +28,7 @@ music-detector/
 │   ├── train.py                      # Training and evaluation script
 │   └── online-inference.py           # Real-time microphone inference
 ├── pretrained_models/                # Trained model checkpoints (.pt files)
+├── misc/                             # Demo videos and media assets
 ├── data/                             # AudioSet audio files (not tracked in git)
 ├── pyproject.toml
 └── README.md
@@ -36,7 +45,7 @@ music-detector/
 ### Installation
 
 ```bash
-git clone https://github.com/<your-username>/music-detector.git
+git clone https://github.com/ChrisNick92/music-detector.git
 cd music-detector
 uv sync
 ```
@@ -53,14 +62,12 @@ Place the downloaded data so the directory structure looks like:
 ```
 data/
 ├── audio_set_train/
-│   ├── train_wav/          # .wav files
-│   └── music_non_music_map.json  (provided in configs/, copy here)
+│   └── train_wav/           # .wav files
 └── audio_set_valid/
-    ├── valid_wav/           # .wav files
-    └── valid_music_non_music_map.json  (provided in configs/, copy here)
+    └── valid_wav/            # .wav files
 ```
 
-The class label mappings (`music_non_music_map.json` and `valid_music_non_music_map.json`) are already included in the `configs/` directory. Copy them into the corresponding data folders, or update the paths in `training_config.yaml` to point directly to `configs/`.
+The class label mappings (`music_non_music_map.json` and `valid_music_non_music_map.json`) are already included in the `configs/` directory. By default, `training_config.yaml` expects them under `data/` — either copy them there or update the `train_mapping` / `valid_mapping` paths in the config to point to `configs/` instead.
 
 ## Training
 
@@ -161,3 +168,15 @@ End-to-end training pipeline. Loads config, builds datasets, constructs an `Audi
 ### `scripts/online-inference.py`
 
 Real-time inference from microphone input. Loads a trained checkpoint, captures audio in fixed-duration segments, and prints timestamped predictions with confidence scores.
+
+## Quick Start — Try It Now! 🎧
+
+A pretrained checkpoint (`pretrained_models/mobilenet_05.pt`) is included in the repo so you can test the music detector right away — no training required!
+
+Just run:
+
+```bash
+uv run python scripts/online-inference.py
+```
+
+Then play some music from your phone, speakers, or any source near your microphone and watch the predictions roll in. 🎶
