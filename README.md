@@ -1,6 +1,6 @@
 # Music Detector
 
->## **Create an efficient and lightweight Music Detector with a few commands 🚀**
+### **Create an efficient and lightweight Music Detector with a few commands 🚀**
 
 ### See it in action 🎬
 
