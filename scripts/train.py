@@ -5,8 +5,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
+import torch
 import yaml
-from deepaudiox import AudioClassifier, Trainer
+from deepaudiox import AudioClassifier, Evaluator, Trainer
 
 from dataset import CLASS_MAPPING, build_music_detection_dataset
 
@@ -185,6 +186,24 @@ def train(config: Config) -> None:
     )
 
     trainer.train()
+
+    # Evaluate the best checkpoint on the validation set
+    state_dict = torch.load(
+        config.training.checkpoint_path,
+        map_location=torch.device("cpu"),
+        weights_only=True,
+    )
+    model.load_state_dict(state_dict)
+
+    evaluator = Evaluator(
+        test_dset=valid_dset,
+        model=model,
+        class_mapping=CLASS_MAPPING,
+        batch_size=config.training.batch_size,
+        num_workers=config.training.num_workers,
+        device_index=config.training.device_index,
+    )
+    evaluator.evaluate()
 
 
 def main() -> None:
