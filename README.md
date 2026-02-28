@@ -4,7 +4,9 @@
 
 ### See it in action 🎬
 
-<video src="misc/music-detector-demo.mp4" controls width="100%"></video>
+
+https://github.com/user-attachments/assets/c34ac982-a87e-46cc-83f0-5895898154f8
+
 
 <sub>Real-time music detection running from the microphone — predictions update every second with confidence scores.</sub>
 
