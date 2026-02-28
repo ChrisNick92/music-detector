@@ -69,6 +69,8 @@ class TrainingConfig:
         batch_size: Number of samples per training batch.
         num_workers: Number of data-loading worker processes.
         checkpoint_path: File path to save the best model checkpoint.
+        device_index: GPU device index to use for training. If not specified,
+            falls back to CPU.
     """
 
     learning_rate: float = 0.001
@@ -77,6 +79,7 @@ class TrainingConfig:
     batch_size: int = 16
     num_workers: int = 4
     checkpoint_path: str = "pretrained_models/checkpoint.pt"
+    device_index: int | None = None
 
 
 @dataclass
@@ -109,6 +112,7 @@ class Config:
           batch_size: 16
           num_workers: 4
           checkpoint_path: pretrained_models/checkpoint.pt
+          device_index: 0
     """
 
     dataset: DatasetConfig
@@ -177,6 +181,7 @@ def train(config: Config) -> None:
         batch_size=config.training.batch_size,
         num_workers=config.training.num_workers,
         path_to_checkpoint=config.training.checkpoint_path,
+        device_index=config.training.device_index,
     )
 
     trainer.train()

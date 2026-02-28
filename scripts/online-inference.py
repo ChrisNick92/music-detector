@@ -48,10 +48,13 @@ class InferenceConfig:
         sample_rate: Sampling rate in Hz for microphone capture. Must match the
             rate used during training.
         segment_duration: Duration in seconds of each audio segment to classify.
+        device_index: GPU device index to use for inference. If not specified,
+            falls back to CPU.
     """
 
     sample_rate: int = 16_000
     segment_duration: float = 10.0
+    device_index: int | None = None
 
 
 @dataclass
@@ -73,6 +76,7 @@ class OnlineInferenceConfig:
         inference:
           sample_rate: 16000
           segment_duration: 10.0
+          device_index: 0
     """
 
     model: ModelConfig
@@ -97,16 +101,18 @@ def load_config(config_path: str | Path) -> OnlineInferenceConfig:
     )
 
 
-def load_model(config: ModelConfig, device: torch.device) -> AudioClassifier:
+def load_model(config: ModelConfig, device_index: int | None) -> AudioClassifier:
     """Reconstruct the AudioClassifier and load trained weights.
 
     Args:
         config: Model configuration matching the architecture used during training.
-        device: Device to load the model onto.
+        device_index: GPU device index. If ``None``, the model is loaded on CPU.
 
     Returns:
         The trained AudioClassifier in evaluation mode.
     """
+    device = torch.device(f"cuda:{device_index}" if device_index is not None else "cpu")
+
     model = AudioClassifier(
         num_classes=len(CLASS_MAPPING),
         backbone=config.backbone,
@@ -135,8 +141,7 @@ def run(config: OnlineInferenceConfig) -> None:
     Args:
         config: Validated online inference configuration.
     """
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = load_model(config.model, device)
+    model = load_model(config.model, config.inference.device_index)
 
     sample_rate = config.inference.sample_rate
     segment_duration = config.inference.segment_duration
