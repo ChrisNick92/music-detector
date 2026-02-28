@@ -1,0 +1,24 @@
+dataset:
+  train_data_dir: data/audio_set_train/train_wav
+  train_mapping: data/audio_set_train/music_non_music_map.json
+  valid_data_dir: data/audio_set_valid/valid_wav
+  valid_mapping: data/audio_set_valid/valid_music_non_music_map.json
+  sample_rate: 16000
+  segment_duration: 10.0
+
+model:
+  backbone: mobilenet_05_as
+  pooling: "ep"
+  freeze_backbone: true
+  classifier_hidden_layers: []
+  activation: relu
+  apply_batch_norm: true
+  pretrained: true
+
+training:
+  learning_rate: 0.001
+  epochs: 100
+  patience: 15
+  batch_size: 16
+  num_workers: 4
+  checkpoint_path: pretrained_models/checkpoint.pt

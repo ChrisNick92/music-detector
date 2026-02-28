@@ -1,0 +1,13 @@
+model:
+  backbone: mobilenet_05_as
+  pooling: ep
+  freeze_backbone: false
+  classifier_hidden_layers: []
+  activation: relu
+  apply_batch_norm: true
+  pretrained: true
+  checkpoint_path: pretrained_models/mobilenet_05.pt
+
+inference:
+  sample_rate: 16000
+  segment_duration: 1

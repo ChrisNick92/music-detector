@@ -2,7 +2,7 @@
 
 import argparse
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
@@ -147,10 +147,20 @@ def run(config: OnlineInferenceConfig) -> None:
     segment_duration = config.inference.segment_duration
     segment_samples = int(segment_duration * sample_rate)
 
-    print(
-        f"Listening... (segment duration: {segment_duration}s, "
-        f"sample rate: {sample_rate} Hz). Press Ctrl+C to stop.\n"
-    )
+    BOLD = "\033[1m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    CYAN = "\033[96m"
+    DIM = "\033[2m"
+    RESET = "\033[0m"
+    MUSIC_ICON = "\u266b"
+    SILENCE_ICON = "\u2205"
+
+    print(f"\n{BOLD}{'=' * 58}{RESET}")
+    print(f"{BOLD}  Music Detector — Real-Time Inference{RESET}")
+    print(f"{DIM}  Segment: {segment_duration}s | Sample rate: {sample_rate} Hz{RESET}")
+    print(f"{BOLD}{'=' * 58}{RESET}")
+    print(f"{DIM}  Press Ctrl+C to stop.{RESET}\n")
 
     try:
         while True:
@@ -171,13 +181,28 @@ def run(config: OnlineInferenceConfig) -> None:
                 segment_duration=segment_duration,
             )
 
-            timestamp = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            timestamp = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")
             label = result["final_label"]
             posterior = result["final_posterior"]
-            print(f"[{timestamp}] {label} ({posterior:.2%})")
+
+            if label == "Music":
+                icon = MUSIC_ICON
+                color = GREEN
+            else:
+                icon = SILENCE_ICON
+                color = YELLOW
+
+            bar_len = int(posterior * 20)
+            bar = f"{'|' * bar_len}{'.' * (20 - bar_len)}"
+
+            print(
+                f"  {DIM}{timestamp}{RESET}  "
+                f"{color}{BOLD}{icon} {label:<10}{RESET} "
+                f"{DIM}[{bar}]{RESET} {posterior:.1%}"
+            )
 
     except KeyboardInterrupt:
-        print("\nStopped.")
+        print(f"\n{DIM}  Stopped.{RESET}\n")
 
 
 def main() -> None:

@@ -211,3 +211,4 @@ data/[!.]*
 *.wav
 *.json
 *.yaml
+!configs/*
