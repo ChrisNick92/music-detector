@@ -18,7 +18,8 @@ model:
 training:
   learning_rate: 0.001
   epochs: 100
-  patience: 15
-  batch_size: 16
-  num_workers: 4
-  checkpoint_path: pretrained_models/checkpoint.pt
+  patience: 20
+  batch_size: 64
+  num_workers: 8
+  checkpoint_path: pretrained_models/mobilenet_05.pt
+  device: mps

@@ -1,15 +1,15 @@
 """Run real-time music detection from microphone input using a trained DeepAudioX model."""
 
 import argparse
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
 
 import sounddevice as sd
 import torch
 import yaml
 from deepaudiox import AudioClassifier
+from typing import Literal
 
 from dataset import CLASS_MAPPING
 
@@ -17,27 +17,15 @@ from dataset import CLASS_MAPPING
 
 @dataclass
 class ModelConfig:
-    """Configuration for reconstructing the trained AudioClassifier.
+    """Configuration for loading the trained AudioClassifier checkpoint.
 
     Attributes:
-        backbone: Pretrained backbone used during training.
-        pooling: Pooling layer used during training. ``null`` defaults to GAP.
-        freeze_backbone: Whether the backbone was frozen during training.
-        classifier_hidden_layers: Hidden layer sizes for the MLP classifier head.
-        activation: Activation function used in the classifier head.
-        apply_batch_norm: Whether batch normalization was applied in the classifier.
-        pretrained: Whether pretrained backbone weights were loaded.
         checkpoint_path: Path to the saved model checkpoint (``.pt`` file).
+            Architecture and weights are restored automatically via
+            ``AudioClassifier.from_checkpoint``.
     """
 
     checkpoint_path: str = "pretrained_models/checkpoint.pt"
-    backbone: Literal["beats", "passt", "mobilenet_05_as", "mobilenet_10_as", "mobilenet_40_as"] = "mobilenet_05_as"
-    pooling: Literal["gap", "simpool", "ep"] | None = "ep"
-    freeze_backbone: bool = True
-    classifier_hidden_layers: list[int] | None = field(default_factory=list)
-    activation: Literal["relu", "gelu", "tanh", "leakyrelu"] = "relu"
-    apply_batch_norm: bool = True
-    pretrained: bool = True
 
 
 @dataclass
@@ -48,12 +36,14 @@ class InferenceConfig:
         sample_rate: Sampling rate in Hz for microphone capture. Must match the
             rate used during training.
         segment_duration: Duration in seconds of each audio segment to classify.
-        device_index: GPU device index to use for inference. If not specified,
-            falls back to CPU.
+        device: Device to use for inference. One of ``"cuda"``, ``"mps"``, or
+            ``"cpu"``.
+        device_index: GPU device index. Only used when ``device="cuda"``.
     """
 
     sample_rate: int = 16_000
     segment_duration: float = 10.0
+    device: Literal["cuda", "mps", "cpu"] = "cpu"
     device_index: int | None = None
 
 
@@ -64,19 +54,13 @@ class OnlineInferenceConfig:
     Expected YAML structure::
 
         model:
-          backbone: mobilenet_05_as
-          pooling: ep
-          freeze_backbone: true
-          classifier_hidden_layers: []
-          activation: relu
-          apply_batch_norm: true
-          pretrained: true
           checkpoint_path: pretrained_models/checkpoint.pt
 
         inference:
           sample_rate: 16000
           segment_duration: 10.0
-          device_index: 0
+          device: cpu
+          device_index: null
     """
 
     model: ModelConfig
@@ -101,32 +85,21 @@ def load_config(config_path: str | Path) -> OnlineInferenceConfig:
     )
 
 
-def load_model(config: ModelConfig, device_index: int | None) -> AudioClassifier:
-    """Reconstruct the AudioClassifier and load trained weights.
+def load_model(config: ModelConfig, inference: "InferenceConfig") -> AudioClassifier:
+    """Load the AudioClassifier from a self-describing checkpoint.
 
     Args:
-        config: Model configuration matching the architecture used during training.
-        device_index: GPU device index. If ``None``, the model is loaded on CPU.
+        config: Model configuration holding the checkpoint path.
+        inference: Inference configuration with device settings.
 
     Returns:
         The trained AudioClassifier in evaluation mode.
     """
-    device = torch.device(f"cuda:{device_index}" if device_index is not None else "cpu")
-
-    model = AudioClassifier(
-        num_classes=len(CLASS_MAPPING),
-        backbone=config.backbone,
-        pooling=config.pooling,
-        freeze_backbone=config.freeze_backbone,
-        sample_rate=16_000,
-        classifier_hidden_layers=config.classifier_hidden_layers,
-        activation=config.activation,
-        apply_batch_norm=config.apply_batch_norm,
-        pretrained=config.pretrained,
+    device = torch.device(
+        f"cuda:{inference.device_index}" if inference.device == "cuda" and inference.device_index is not None
+        else inference.device
     )
-
-    state_dict = torch.load(config.checkpoint_path, map_location=device, weights_only=True)
-    model.load_state_dict(state_dict)
+    model = AudioClassifier.from_checkpoint(config.checkpoint_path)
     model.to(device)
     model.eval()
     return model
@@ -141,7 +114,7 @@ def run(config: OnlineInferenceConfig) -> None:
     Args:
         config: Validated online inference configuration.
     """
-    model = load_model(config.model, config.inference.device_index)
+    model = load_model(config.model, config.inference)
 
     sample_rate = config.inference.sample_rate
     segment_duration = config.inference.segment_duration

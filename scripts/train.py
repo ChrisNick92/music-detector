@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-import torch
 import yaml
 from deepaudiox import AudioClassifier, Evaluator, Trainer
 
@@ -70,8 +69,9 @@ class TrainingConfig:
         batch_size: Number of samples per training batch.
         num_workers: Number of data-loading worker processes.
         checkpoint_path: File path to save the best model checkpoint.
-        device_index: GPU device index to use for training. If not specified,
-            falls back to CPU.
+        device: Device to use for training. One of ``"cuda"``, ``"mps"``, or
+            ``"cpu"``.
+        device_index: GPU device index. Only used when ``device="cuda"``.
     """
 
     learning_rate: float = 0.001
@@ -80,6 +80,7 @@ class TrainingConfig:
     batch_size: int = 16
     num_workers: int = 4
     checkpoint_path: str = "pretrained_models/checkpoint.pt"
+    device: Literal["cuda", "mps", "cpu"] = "cpu"
     device_index: int | None = None
 
 
@@ -113,7 +114,8 @@ class Config:
           batch_size: 16
           num_workers: 4
           checkpoint_path: pretrained_models/checkpoint.pt
-          device_index: 0
+          device: cpu
+          device_index: null
     """
 
     dataset: DatasetConfig
@@ -182,18 +184,14 @@ def train(config: Config) -> None:
         batch_size=config.training.batch_size,
         num_workers=config.training.num_workers,
         path_to_checkpoint=config.training.checkpoint_path,
+        device=config.training.device,
         device_index=config.training.device_index,
     )
 
     trainer.train()
 
     # Evaluate the best checkpoint on the validation set
-    state_dict = torch.load(
-        config.training.checkpoint_path,
-        map_location=torch.device("cpu"),
-        weights_only=True,
-    )
-    model.load_state_dict(state_dict)
+    model = AudioClassifier.from_checkpoint(config.training.checkpoint_path)
 
     evaluator = Evaluator(
         test_dset=valid_dset,
@@ -201,6 +199,7 @@ def train(config: Config) -> None:
         class_mapping=CLASS_MAPPING,
         batch_size=config.training.batch_size,
         num_workers=config.training.num_workers,
+        device=config.training.device,
         device_index=config.training.device_index,
     )
     evaluator.evaluate()
